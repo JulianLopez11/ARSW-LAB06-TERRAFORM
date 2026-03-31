@@ -1,7 +1,6 @@
-# Lab #8 — Infraestructura como Código con Terraform (Azure)
-**Curso:** BluePrints / ARSW  
-**Duración estimada:** 2–3 horas (base) + 1–2 horas (retos)  
-**Última actualización:** 2025-11-09
+# Lab #6 — Infraestructura como Código con Terraform (Azure)
+**Curso:** ARSW  
+
 
 ## Propósito
 Modernizar el laboratorio de balanceo de carga en Azure usando **Terraform** para definir, aprovisionar y versionar la infraestructura. El objetivo es que los estudiantes diseñen y desplieguen una arquitectura reproducible, segura y con buenas prácticas de _IaC_.
@@ -259,8 +258,16 @@ terraform destroy -var-file=env/dev.tfvars
 
 ## Preguntas de reflexión
 - ¿Por qué L4 LB vs Application Gateway (L7) en tu caso? ¿Qué cambiaría?
+  En este laboratorio se usó Azure Load Balancer (L4) porque el objetivo principal era distribuir tráfico HTTP simple entre maquinas virtuaes con la menor complejidad y costo y L4B brinda lo básico para los balanceadores de carga que se querian ver en este laboratorio. Se cambiaria a L7 en dado caso de querer algo mas avanzado como redirecciones HTTP a un puerto mas seguro como lo es HTTPS por ejemplo y asi brindar en cierta parte algo mas de seguridad
+
 - ¿Qué implicaciones de seguridad tiene exponer 22/TCP? ¿Cómo mitigarlas?
+
+  Publicar SSH hacia Internet aumenta un rango vulnerable que se va a tener en cuestiones de seguridad, como ataques y demas. En el laboratorio se permitio exponer 22/TCP solo desde una IP específica que es la dirección IP privada y usando autenticación por llave SSH (sin contraseña). 
 - ¿Qué mejoras harías si esto fuera **producción**? (resiliencia, autoscaling, observabilidad).
+
+- ¿Qué mejoras harías si esto fuera producción? (resiliencia, autoscaling, observabilidad).
+
+  Fortalecer la red y seguridad con subredes privadas, un cofre de llaves o palabras importantes, políticas de Azure y TLS extremo a extremo, tambien se podria implementar observabilidad con Azure Monitor y algunas alertas, métricas para los balanceadores y dashboards.
 
 ---
 
