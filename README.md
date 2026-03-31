@@ -91,8 +91,22 @@ az group create -n $RG -l $LOCATION
 az storage account create -g $RG -n $STO -l $LOCATION --sku Standard_LRS --encryption-services blob
 az storage container create --name $CONTAINER --account-name $STO
 ```
+![alt text](docs/img/prueba6.png)
+---
+![alt text](docs/img/prueba7.png)
+---
+![alt text](docs/img/prueba8.png)
 
 Completa `infra/backend.hcl.example` con los valores creados y renómbralo a `backend.hcl`.
+Quedaria de la siguiente forma: 
+
+```terraform
+resource_group_name  = "rg-tfstate-lab8"
+storage_account_name = "julianlab06azure"
+container_name       = "tfstate"
+key                  = "lab8/terraform.tfstate"
+```
+
 
 ---
 
@@ -139,8 +153,7 @@ az login
 az account show # verifica la suscripción activa
 
 # Inicializa Terraform con backend remoto
-terraform init -backend-config=backend.hcl
-
+terraform init -backend-config="backend.hcl" -migrate-state
 # Revisión rápida
 terraform fmt -recursive
 terraform validate
@@ -160,7 +173,40 @@ curl http://$(terraform output -raw lb_public_ip)
 - `resource_group_name`
 - `vm_names`
 
+Para el flujo de trabajo tenemos que al inicializar terraform y validar se puede observar de la siguiente forma:
+
+![alt text](docs/img/prueba1.png)
 ---
+
+Luego para el plan de ejecución de terraform:
+
+![alt text](docs/img/prueba2.png)
+---
+
+Las pruebas se pueden observar en las siguientes imagenes: 
+
+Desde el navegador hacemos la solicitud y se ve de la siguiente forma:
+
+![alt text](docs/img/prueba1navegador.png)
+---
+Luego de unos momentos el balanceador de carga hace su trabajo y se ve de la siguiente forma:
+
+![alt text](docs/img/prueba2navegador.png)
+---
+
+Haciendo las pruebas con curl desde la consola: 
+
+![alt text](docs/img/prueba4.png)
+
+Finalmente en Azure se puede visualizar
+
+![alt text](docs/img/prueba9.png)
+---
+
+![alt text](docs/img/prueba10.png)
+
+
+
 
 ## GitHub Actions (CI/CD con OIDC)
 El _workflow_ `.github/workflows/terraform.yml`:
