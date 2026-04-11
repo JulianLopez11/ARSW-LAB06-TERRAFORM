@@ -251,6 +251,6 @@ jobs:
       - name: Notify Success
         if: success()
         run: |
-          echo "✅ Terraform destroy completed successfully"
+          echo "Terraform destroy completed successfully"
           echo "Environment: ${{ github.event.inputs.environment }}"
           echo "Triggered by: ${{ github.actor }}"
