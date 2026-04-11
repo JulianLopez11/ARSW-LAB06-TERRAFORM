@@ -205,7 +205,13 @@ Finalmente en Azure se puede visualizar
 ![alt text](docs/img/prueba10.png)
 
 
+Prueba de destrucción: 
 
+![alt text](docs/img/prueba11.png)
+---
+![alt text](docs/img/prueba12.png)
+---
+![alt text](docs/img/prueba13.png)
 
 ## GitHub Actions (CI/CD con OIDC)
 El _workflow_ `.github/workflows/terraform.yml`:
@@ -215,37 +221,12 @@ El _workflow_ `.github/workflows/terraform.yml`:
 
 **Configura OIDC** en Azure (federación con tu repositorio) y asigna el rol **Contributor** al _principal_ del _workflow_ sobre el RG del lab.
 
----
+En esta sección no se pudo realizar la configuracion del OIDC por falta de permisos en la cuenta de Azure Estudiantes que la universidad nos brinda: 
 
-## Entregables en TEAMS
-1. **Repositorio GitHub** del equipo con:
-   - Código Terraform (módulos) y `cloud-init.yaml`.
-   - `backend.hcl` **(sin secretos)** y `env/dev.tfvars` (sin llaves privadas).
-   - Workflow de GitHub Actions y evidencias del `plan`.
-2. **Diagrama** (componente y secuencia) del caso de estudio propuesto.
-3. **URL/IP pública** del Load Balancer + **captura** mostrando respuesta de **2 VMs** (p. ej. refrescar y ver hostnames cambiar).
-4. **Reflexión técnica** (1 página máx.): decisiones, trade‑offs, costos aproximados y cómo destruir seguro.
-5. **Limpieza**: confirmar `terraform destroy` al finalizar.
+![alt text](docs/img/prueba14.png)
 
 ---
 
-## Rúbrica (100 pts)
-- **Infra desplegada y funcional (40 pts):** LB, 2+ VMs, health probe, NSG correcto.
-- **Buenas prácticas Terraform (20 pts):** módulos, variables, `fmt/validate`, _remote state_.
-- **Seguridad y costos (15 pts):** SSH por clave, NSG mínimo, tags y _naming_; estimación de costos.
-- **CI/CD (15 pts):** pipeline con `plan` automático y `apply` manual (OIDC).
-- **Documentación y diagramas (10 pts):** README del equipo, diagramas claros y reflexión.
-
----
-
-## Retos (elige 2+)
-- Migrar a **VM Scale Set** con _Custom Script Extension_ o **cloud-init**.
-- Reemplazar LB por **Application Gateway** con _probe_ HTTP y _path-based routing_ (si exponen múltiples apps).
-- **Azure Bastion** para acceso SSH sin IP pública en VMs.
-- **Alertas** de Azure Monitor (p. ej. estado del probe) y **Budget alert**.
-- **Módulos privados** versionados con _semantic versioning_.
-
----
 
 ## Limpieza
 ```bash
@@ -270,6 +251,40 @@ terraform destroy -var-file=env/dev.tfvars
   Fortalecer la red y seguridad con subredes privadas, un cofre de llaves o palabras importantes, políticas de Azure y TLS extremo a extremo, tambien se podria implementar observabilidad con Azure Monitor y algunas alertas, métricas para los balanceadores y dashboards.
 
 ---
+
+## Reflexión Tecnica
+
+El uso de Terraform permitió gestionar la infraestructura como código, facilitando la reproducibilidad, versionamiento y automatización del despliegue. Una de las decisiones clave fue separar la configuración por ambientes (por ejemplo, dev mediante archivos .tfvars), lo que mejora la organización y evita errores al manejar múltiples entornos.
+
+### Decisiones tomadas
+
+Se optó por utilizar un backend remoto en Microsoft Azure, específicamente mediante Storage Accounts, para almacenar el estado (terraform.tfstate). También se decidió usar el flujo plan → apply con archivos de salida (.tfplan) para garantizar que los cambios revisados sean exactamente los que se aplican mediante el powershell.
+
+Otra decisión importante fue seguir la modularización que se tenia en el repositorio inicia lo cual en dado caso de querer implementar los retos por ejemplo facilita la reutilización y mantenimiento del código.
+
+### Trade-offs
+
+El principal trade-off es entre simplicidad y escalabilidad. Mantener todo en un solo archivo .tf es más simple, pero menos mantenible; en cambio, dividir en módulos mejora la organización.
+
+También existe un trade-off entre rapidez y control. Ejecutar directamente terraform apply es más rápido, pero usar terraform plan agrega una capa de seguridad que reduce errores, especialmente en entornos productivos. Otro aspecto es el manejo del estado remoto: aunque mejora la colaboración, introduce dependencia de costos adicionales como en este caso en la nube de Azure que al elegir el plan "mas barato" se puede sacrificar y depender de esto .
+
+### Costos
+### Estimación Mensual (~$38 USD)
+- VMs: 2x Standard_B1s × ~$7.59/mes = $15.18
+- Load Balancer: Basic tier = $18/mes
+- Public IP: ~$3/mes
+- Storage Account: ~$0.50/mes
+- VNet/NSG: $0 (included)
+
+### Procedimiento de Destrucción Segura
+
+1. Verificar estado actual: `terraform state list`
+2. Revisar plan de destrucción: `terraform plan -var-file="env/dev.tfvars"`
+3. Ejecutar destrucción: `terraform destroy -var-file="env/dev.tfvars"`
+4. Confirmar en Azure Portal que recursos fueron eliminados
+5. Eliminar backend Storage Account 
+
+El uso de Terraform garantiza que todos los recursos definidos sean eliminados de forma consistente y secuencial para asi quede correctamente.
 
 ## Créditos y material de referencia
 - Azure, Terraform, IaC, LB y VMSS (docs oficiales) — revisa enlaces en clase.
