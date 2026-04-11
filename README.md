@@ -1,7 +1,6 @@
-# Lab #8 — Infraestructura como Código con Terraform (Azure)
-**Curso:** BluePrints / ARSW  
-**Duración estimada:** 2–3 horas (base) + 1–2 horas (retos)  
-**Última actualización:** 2025-11-09
+# Lab #6 — Infraestructura como Código con Terraform (Azure)
+**Curso:** ARSW  
+
 
 ## Propósito
 Modernizar el laboratorio de balanceo de carga en Azure usando **Terraform** para definir, aprovisionar y versionar la infraestructura. El objetivo es que los estudiantes diseñen y desplieguen una arquitectura reproducible, segura y con buenas prácticas de _IaC_.
@@ -91,8 +90,22 @@ az group create -n $RG -l $LOCATION
 az storage account create -g $RG -n $STO -l $LOCATION --sku Standard_LRS --encryption-services blob
 az storage container create --name $CONTAINER --account-name $STO
 ```
+![alt text](docs/img/prueba6.png)
+---
+![alt text](docs/img/prueba7.png)
+---
+![alt text](docs/img/prueba8.png)
 
 Completa `infra/backend.hcl.example` con los valores creados y renómbralo a `backend.hcl`.
+Quedaria de la siguiente forma: 
+
+```terraform
+resource_group_name  = "rg-tfstate-lab8"
+storage_account_name = "julianlab06azure"
+container_name       = "tfstate"
+key                  = "lab8/terraform.tfstate"
+```
+
 
 ---
 
@@ -139,8 +152,7 @@ az login
 az account show # verifica la suscripción activa
 
 # Inicializa Terraform con backend remoto
-terraform init -backend-config=backend.hcl
-
+terraform init -backend-config="backend.hcl" -migrate-state
 # Revisión rápida
 terraform fmt -recursive
 terraform validate
@@ -160,7 +172,46 @@ curl http://$(terraform output -raw lb_public_ip)
 - `resource_group_name`
 - `vm_names`
 
+Para el flujo de trabajo tenemos que al inicializar terraform y validar se puede observar de la siguiente forma:
+
+![alt text](docs/img/prueba1.png)
 ---
+
+Luego para el plan de ejecución de terraform:
+
+![alt text](docs/img/prueba2.png)
+---
+
+Las pruebas se pueden observar en las siguientes imagenes: 
+
+Desde el navegador hacemos la solicitud y se ve de la siguiente forma:
+
+![alt text](docs/img/prueba1navegador.png)
+---
+Luego de unos momentos el balanceador de carga hace su trabajo y se ve de la siguiente forma:
+
+![alt text](docs/img/prueba2navegador.png)
+---
+
+Haciendo las pruebas con curl desde la consola: 
+
+![alt text](docs/img/prueba4.png)
+
+Finalmente en Azure se puede visualizar
+
+![alt text](docs/img/prueba9.png)
+---
+
+![alt text](docs/img/prueba10.png)
+
+
+Prueba de destrucción: 
+
+![alt text](docs/img/prueba11.png)
+---
+![alt text](docs/img/prueba12.png)
+---
+![alt text](docs/img/prueba13.png)
 
 ## GitHub Actions (CI/CD con OIDC)
 El _workflow_ `.github/workflows/terraform.yml`:
@@ -170,37 +221,12 @@ El _workflow_ `.github/workflows/terraform.yml`:
 
 **Configura OIDC** en Azure (federación con tu repositorio) y asigna el rol **Contributor** al _principal_ del _workflow_ sobre el RG del lab.
 
----
+En esta sección no se pudo realizar la configuracion del OIDC por falta de permisos en la cuenta de Azure Estudiantes que la universidad nos brinda: 
 
-## Entregables en TEAMS
-1. **Repositorio GitHub** del equipo con:
-   - Código Terraform (módulos) y `cloud-init.yaml`.
-   - `backend.hcl` **(sin secretos)** y `env/dev.tfvars` (sin llaves privadas).
-   - Workflow de GitHub Actions y evidencias del `plan`.
-2. **Diagrama** (componente y secuencia) del caso de estudio propuesto.
-3. **URL/IP pública** del Load Balancer + **captura** mostrando respuesta de **2 VMs** (p. ej. refrescar y ver hostnames cambiar).
-4. **Reflexión técnica** (1 página máx.): decisiones, trade‑offs, costos aproximados y cómo destruir seguro.
-5. **Limpieza**: confirmar `terraform destroy` al finalizar.
+![alt text](docs/img/prueba14.png)
 
 ---
 
-## Rúbrica (100 pts)
-- **Infra desplegada y funcional (40 pts):** LB, 2+ VMs, health probe, NSG correcto.
-- **Buenas prácticas Terraform (20 pts):** módulos, variables, `fmt/validate`, _remote state_.
-- **Seguridad y costos (15 pts):** SSH por clave, NSG mínimo, tags y _naming_; estimación de costos.
-- **CI/CD (15 pts):** pipeline con `plan` automático y `apply` manual (OIDC).
-- **Documentación y diagramas (10 pts):** README del equipo, diagramas claros y reflexión.
-
----
-
-## Retos (elige 2+)
-- Migrar a **VM Scale Set** con _Custom Script Extension_ o **cloud-init**.
-- Reemplazar LB por **Application Gateway** con _probe_ HTTP y _path-based routing_ (si exponen múltiples apps).
-- **Azure Bastion** para acceso SSH sin IP pública en VMs.
-- **Alertas** de Azure Monitor (p. ej. estado del probe) y **Budget alert**.
-- **Módulos privados** versionados con _semantic versioning_.
-
----
 
 ## Limpieza
 ```bash
@@ -213,10 +239,52 @@ terraform destroy -var-file=env/dev.tfvars
 
 ## Preguntas de reflexión
 - ¿Por qué L4 LB vs Application Gateway (L7) en tu caso? ¿Qué cambiaría?
+  En este laboratorio se usó Azure Load Balancer (L4) porque el objetivo principal era distribuir tráfico HTTP simple entre maquinas virtuaes con la menor complejidad y costo y L4B brinda lo básico para los balanceadores de carga que se querian ver en este laboratorio. Se cambiaria a L7 en dado caso de querer algo mas avanzado como redirecciones HTTP a un puerto mas seguro como lo es HTTPS por ejemplo y asi brindar en cierta parte algo mas de seguridad
+
 - ¿Qué implicaciones de seguridad tiene exponer 22/TCP? ¿Cómo mitigarlas?
+
+  Publicar SSH hacia Internet aumenta un rango vulnerable que se va a tener en cuestiones de seguridad, como ataques y demas. En el laboratorio se permitio exponer 22/TCP solo desde una IP específica que es la dirección IP privada y usando autenticación por llave SSH (sin contraseña). 
 - ¿Qué mejoras harías si esto fuera **producción**? (resiliencia, autoscaling, observabilidad).
 
+- ¿Qué mejoras harías si esto fuera producción? (resiliencia, autoscaling, observabilidad).
+
+  Fortalecer la red y seguridad con subredes privadas, un cofre de llaves o palabras importantes, políticas de Azure y TLS extremo a extremo, tambien se podria implementar observabilidad con Azure Monitor y algunas alertas, métricas para los balanceadores y dashboards.
+
 ---
+
+## Reflexión Tecnica
+
+El uso de Terraform permitió gestionar la infraestructura como código, facilitando la reproducibilidad, versionamiento y automatización del despliegue. Una de las decisiones clave fue separar la configuración por ambientes (por ejemplo, dev mediante archivos .tfvars), lo que mejora la organización y evita errores al manejar múltiples entornos.
+
+### Decisiones tomadas
+
+Se optó por utilizar un backend remoto en Microsoft Azure, específicamente mediante Storage Accounts, para almacenar el estado (terraform.tfstate). También se decidió usar el flujo plan → apply con archivos de salida (.tfplan) para garantizar que los cambios revisados sean exactamente los que se aplican mediante el powershell.
+
+Otra decisión importante fue seguir la modularización que se tenia en el repositorio inicia lo cual en dado caso de querer implementar los retos por ejemplo facilita la reutilización y mantenimiento del código.
+
+### Trade-offs
+
+El principal trade-off es entre simplicidad y escalabilidad. Mantener todo en un solo archivo .tf es más simple, pero menos mantenible; en cambio, dividir en módulos mejora la organización.
+
+También existe un trade-off entre rapidez y control. Ejecutar directamente terraform apply es más rápido, pero usar terraform plan agrega una capa de seguridad que reduce errores, especialmente en entornos productivos. Otro aspecto es el manejo del estado remoto: aunque mejora la colaboración, introduce dependencia de costos adicionales como en este caso en la nube de Azure que al elegir el plan "mas barato" se puede sacrificar y depender de esto .
+
+### Costos
+### Estimación Mensual (~$38 USD)
+- VMs: 2x Standard_B1s × ~$7.59/mes = $15.18
+- Load Balancer: Basic tier = $18/mes
+- Public IP: ~$3/mes
+- Storage Account: ~$0.50/mes
+- VNet/NSG: $0 (included)
+
+### Procedimiento de Destrucción Segura
+
+1. Verificar estado actual: `terraform state list`
+2. Revisar plan de destrucción: `terraform plan -var-file="env/dev.tfvars"`
+3. Ejecutar destrucción: `terraform destroy -var-file="env/dev.tfvars"`
+4. Confirmar en Azure Portal que recursos fueron eliminados
+5. Eliminar backend Storage Account 
+
+El uso de Terraform garantiza que todos los recursos definidos sean eliminados de forma consistente y secuencial para asi quede correctamente.
 
 ## Créditos y material de referencia
 - Azure, Terraform, IaC, LB y VMSS (docs oficiales) — revisa enlaces en clase.
